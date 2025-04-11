@@ -134,12 +134,36 @@ function TimeManager({ onLocationTasks }) {
   const handleAddSubtasks = (subtasks) => {
     console.log('Adding subtasks:', subtasks); // Debug log
 
+    if (!subtasks || subtasks.length === 0) {
+      console.error('No subtasks received');
+      return;
+    }
+
+    // Make sure each subtask has the required properties
+    const validSubtasks = subtasks.map(subtask => ({
+      ...subtask,
+      id: subtask.id || Date.now() + Math.random(),
+      text: subtask.text || 'Úkol',
+      duration: subtask.duration || 30,
+      completed: false,
+      createdAt: subtask.createdAt || new Date().toISOString()
+    }));
+
+    console.log('Valid subtasks:', validSubtasks);
+
     // Add the new subtasks to the existing tasks
-    const newTasks = [...tasks, ...subtasks];
+    const newTasks = [...tasks, ...validSubtasks];
+
+    // Update state
     setTasks(newTasks);
 
-    // Save to localStorage
-    localStorage.setItem('tasks', JSON.stringify(newTasks));
+    // Save to localStorage immediately
+    try {
+      localStorage.setItem('tasks', JSON.stringify(newTasks));
+      console.log('Tasks saved to localStorage:', newTasks);
+    } catch (error) {
+      console.error('Error saving tasks to localStorage:', error);
+    }
 
     // Automatically generate schedule with the new tasks
     if (hasApiKey()) {

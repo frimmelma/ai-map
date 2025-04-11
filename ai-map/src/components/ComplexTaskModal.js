@@ -28,17 +28,21 @@ function ComplexTaskModal({ isOpen, onClose, onTasksCreated, onLocationTasksCrea
 
       if (subtasks && subtasks.length > 0) {
         // Add IDs and timestamps to subtasks
-        const formattedSubtasks = subtasks.map((subtask, index) => ({
-          ...subtask,
-          completed: false, // Add completed property
-          id: Date.now() + index, // Use index to ensure unique IDs
-          createdAt: new Date().toISOString(),
-          // Ensure all required properties are present
-          text: subtask.text || 'Úkol',
-          duration: subtask.duration || 30,
-          location: subtask.location || null,
-          requires_travel: subtask.requires_travel || false
-        }));
+        const formattedSubtasks = subtasks.map((subtask, index) => {
+          // Create a properly formatted subtask object
+          const formattedSubtask = {
+            id: Date.now() + index, // Use index to ensure unique IDs
+            text: subtask.text || 'Úkol',
+            duration: parseInt(subtask.duration) || 30,
+            completed: false,
+            createdAt: new Date().toISOString(),
+            location: subtask.location || null,
+            requires_travel: subtask.requires_travel || false
+          };
+
+          console.log(`Formatted subtask ${index}:`, formattedSubtask);
+          return formattedSubtask;
+        });
 
         // Identify location-based tasks but don't filter them out
         const locationTasks = formattedSubtasks.filter(task => task.requires_travel && task.location);
