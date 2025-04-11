@@ -27,7 +27,16 @@ function TimeManager({ onLocationTasks }) {
     const storedFreeTimeActivities = localStorage.getItem('freeTimeActivities');
     const storedSchedule = localStorage.getItem('schedule');
 
-    if (storedTasks) setTasks(JSON.parse(storedTasks));
+    if (storedTasks) {
+      try {
+        const parsedTasks = JSON.parse(storedTasks);
+        console.log('Loaded tasks from localStorage:', parsedTasks);
+        setTasks(parsedTasks);
+      } catch (error) {
+        console.error('Error parsing tasks from localStorage:', error);
+      }
+    }
+
     if (storedCompletedTasks) setCompletedTasks(JSON.parse(storedCompletedTasks));
     if (storedFreeTimeActivities) setFreeTimeActivities(JSON.parse(storedFreeTimeActivities));
     if (storedSchedule) setSchedule(JSON.parse(storedSchedule));
@@ -123,9 +132,14 @@ function TimeManager({ onLocationTasks }) {
 
   // Handle adding multiple subtasks from complex task breakdown
   const handleAddSubtasks = (subtasks) => {
+    console.log('Adding subtasks:', subtasks); // Debug log
+
     // Add the new subtasks to the existing tasks
     const newTasks = [...tasks, ...subtasks];
     setTasks(newTasks);
+
+    // Save to localStorage
+    localStorage.setItem('tasks', JSON.stringify(newTasks));
 
     // Automatically generate schedule with the new tasks
     if (hasApiKey()) {

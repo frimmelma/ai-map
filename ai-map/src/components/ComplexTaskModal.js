@@ -28,20 +28,30 @@ function ComplexTaskModal({ isOpen, onClose, onTasksCreated, onLocationTasksCrea
 
       if (subtasks && subtasks.length > 0) {
         // Add IDs and timestamps to subtasks
-        const formattedSubtasks = subtasks.map(subtask => ({
+        const formattedSubtasks = subtasks.map((subtask, index) => ({
           ...subtask,
-          id: Date.now() + Math.random(),
-          createdAt: new Date().toISOString()
+          completed: false, // Add completed property
+          id: Date.now() + index, // Use index to ensure unique IDs
+          createdAt: new Date().toISOString(),
+          // Ensure all required properties are present
+          text: subtask.text || 'Úkol',
+          duration: subtask.duration || 30,
+          location: subtask.location || null,
+          requires_travel: subtask.requires_travel || false
         }));
 
         // Identify location-based tasks but don't filter them out
         const locationTasks = formattedSubtasks.filter(task => task.requires_travel && task.location);
+
+        // Log for debugging
+        console.log('Formatted subtasks:', formattedSubtasks);
 
         // Send all tasks to the task handler
         onTasksCreated(formattedSubtasks);
 
         // Also send location tasks to the location handler if there are any
         if (locationTasks.length > 0 && onLocationTasksCreated) {
+          console.log('Location tasks:', locationTasks);
           onLocationTasksCreated(locationTasks);
         }
 
