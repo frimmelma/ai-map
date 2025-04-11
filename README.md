@@ -68,10 +68,33 @@ Aplikace je postavena na následujících technologiích:
 
 ## Instalace a spuštění
 
-1. Naklonujte repozitář
-2. Nainstalujte závislosti: `npm install`
-3. Spusťte vývojový server: `npm start`
-4. Aplikace bude dostupná na adrese: `http://localhost:3000`
+### Standardní instalace
+
+1. Naklonujte repozitář: `git clone -b v1 https://github.com/frimmelma/ai-map.git`
+2. Přejděte do adresáře: `cd ai-map`
+3. Nainstalujte závislosti bez varování: `npm run clean-install`
+4. Spusťte vývojový server bez varování: `./start-without-warnings.sh`
+5. Aplikace bude dostupná na adrese: `http://localhost:3000`
+
+### Spuštění pomocí Docker Compose
+
+1. Nainstalujte Docker a Docker Compose:
+   - **Ubuntu/Debian**: `sudo apt install docker.io docker-compose`
+   - **Fedora**: `sudo dnf install docker docker-compose`
+   - **Windows/Mac**: Stáhněte [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+
+2. Naklonujte repozitář: `git clone -b v1 https://github.com/frimmelma/ai-map.git`
+3. Přejděte do kořenového adresáře: `cd ai-map`
+4. Sestavte a spusťte kontejnery: `docker-compose up --build`
+5. Aplikace bude dostupná na adrese: `http://localhost:3000`
+
+### Řešení problémů
+
+Pokud se při instalaci zobrazují varování o zastaralých balíčcích:
+
+1. Ujistěte se, že používáte větev `v1`: `git checkout v1`
+2. Použijte skript pro čistou instalaci: `npm run clean-install`
+3. Nebo spusťte aplikaci pomocí Docker Compose, který automaticky potlačí všechna varování
 
 ## Poznámky
 
