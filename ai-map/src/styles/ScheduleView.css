@@ -1,0 +1,141 @@
+.schedule-view {
+  background-color: white;
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  margin-top: 2rem;
+}
+
+.schedule-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.schedule-view h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.schedule-stats {
+  display: flex;
+  gap: 1rem;
+}
+
+.schedule-time,
+.schedule-count {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #4b5563;
+}
+
+.schedule-container {
+  position: relative;
+  height: 500px;
+  display: flex;
+  padding: 1rem 0;
+}
+
+.time-markers {
+  width: 60px;
+  position: relative;
+  border-right: 1px dashed #e5e7eb;
+  flex-shrink: 0;
+}
+
+.time-marker {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  padding-right: 10px;
+  text-align: right;
+  font-size: 0.75rem;
+  color: #6b7280;
+  transform: translateY(-50%);
+}
+
+.time-marker::after {
+  content: '';
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  width: 5px;
+  height: 1px;
+  background-color: #d1d5db;
+}
+
+.schedule-blocks {
+  position: relative;
+  flex: 1;
+  padding: 0 1rem;
+}
+
+.schedule-block {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  overflow: hidden;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.schedule-block:hover {
+  transform: translateX(5px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.schedule-block.task {
+  background-color: #e0e7ff;
+  border-left: 3px solid #4f46e5;
+}
+
+.schedule-block.free_time {
+  background-color: #d1fae5;
+  border-left: 3px solid #10b981;
+}
+
+.block-time {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #4b5563;
+  margin-bottom: 0.25rem;
+}
+
+.block-activity {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.block-duration {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: #4b5563;
+  margin-top: 0.25rem;
+}
+
+.empty-schedule {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #9ca3af;
+  font-style: italic;
+  text-align: center;
+  padding: 0 2rem;
+}

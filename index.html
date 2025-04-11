@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Mapa - Navigace kamkoliv</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f0f9ff; /* Fallback */
+        background-image: linear-gradient(to bottom right, #f0f9ff, #fef2f9, #eff6ff);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden; /* Zabrání scrollbarům kvůli panelům mimo obrazovku */
+        min-height: 100vh;
+        padding: 1rem;
+      }
+
+      /* --- Finální styly prvků --- */
+       .task-item, .free-time-item {
+        transition: all 0.25s ease-in-out;
+        border: 1px solid #e5e7eb;
+        background-color: rgba(255, 255, 255, 0.95); /* Méně průhledné */
+        backdrop-filter: blur(10px); /* Mírně silnější blur */
+        border-radius: 0.75rem; /* rounded-xl */
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      }
+      .task-item:hover, .free-time-item:hover {
+        border-color: #818cf8; /* Indigo-400 border */
+        transform: translateY(-2px) scale(1.01); /* Jemnější hover efekt */
+        box-shadow: 0 6px 12px -3px rgb(0 0 0 / 0.1), 0 4px 8px -4px rgb(0 0 0 / 0.07); /* Výraznější stín při hoveru */
+      }
+      .task-item.completed { opacity: 0.75; } /* Mírně viditelnější dokončené */
+      .task-item.completed .task-text { text-decoration: line-through; color: #4b5563; } /* Tmavší šedá */
+      .task-duration { font-size: 0.75rem; font-weight: 500; color: #374151; margin-left: 10px; display: inline-flex; align-items: center; gap: 4px; background-color: #f3f4f6; padding: 3px 8px; border-radius: 9999px; border: 1px solid #e5e7eb; }
+      .task-item.completed .task-duration { text-decoration: line-through; color: #6b7280; background-color: #f9fafb; }
+      .elapsed-time { font-size: 0.75rem; color: #6b7280; margin-left: 10px; display: inline-flex; align-items: center; gap: 4px; }
+
+       /* Vylepšená tlačítka Přidat (ikonová) */
+      .add-icon-button-base {
+          height: 46px; width: 46px; color: white; border-radius: 0.75rem; transition: all 0.2s ease-in-out; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); flex-shrink: 0; border: none; cursor: pointer;
+      }
+       .add-icon-button-base:hover { box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.1); transform: translateY(-2px); }
+       .add-icon-button-base:active { transform: scale(0.95); box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1); }
+       .add-icon-button-base:focus { outline: none; box-shadow: 0 0 0 3px white, 0 0 0 5px #4f46e5; }
+       .add-icon-button-blue { background-color: #4f46e5; } .add-icon-button-blue:hover { background-color: #4338ca; } .add-icon-button-blue:focus { box-shadow: 0 0 0 3px white, 0 0 0 5px #6366f1; }
+       .add-icon-button-green { background-color: #10b981; } .add-icon-button-green:hover { background-color: #059669; } .add-icon-button-green:focus { box-shadow: 0 0 0 3px white, 0 0 0 5px #34d399; }
+
+      /* Vylepšené inputy */
+      input[type="text"], input[type="number"], input[type="password"], input[type="datetime-local"] {
+          padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.75rem; transition: all 0.15s ease-in-out; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); background-color: #ffffff; height: 46px;
+      }
+      input[type="text"]:focus, input[type="number"]:focus, input[type="password"]:focus, input[type="datetime-local"]:focus {
+          outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+      }
+      input::placeholder { color: #9ca3af; }
+
+      /* Vylepšené sekce seznamů */
+      .list-section { background-color: rgba(255, 255, 255, 0.6); backdrop-filter: blur(12px); border-radius: 0.75rem; padding: 1.5rem; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.07); border: 1px solid rgba(209, 213, 219, 0.8); }
+      .list-section h2 { font-size: 1.5rem; font-weight: 600; color: #1f2937; margin-bottom: 1.25rem; padding-bottom: 0.75rem; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; gap: 0.5rem; justify-content: space-between; }
+
+      /* Vylepšené action buttons */
+      .action-button { padding: 0.5rem; border-radius: 9999px; transition: all 0.15s ease-in-out; transform-origin: center; display: flex; align-items: center; justify-content: center; border: none; background: none; cursor: pointer; }
+      .action-button:hover { transform: scale(1.1); } .action-button:active { transform: scale(1); }
+      .action-button:focus { outline: none; box-shadow: 0 0 0 2px white, 0 0 0 4px rgba(99, 102, 241, 0.6); }
+      .action-button-complete { color: #16a34a; } .action-button-complete:hover { background-color: #dcfce7; }
+      .action-button-undo { color: #f59e0b; } .action-button-undo:hover { background-color: #fef9c3; }
+      .action-button-delete { color: #ef4444; } .action-button-delete:hover { background-color: #fee2e2; }
+
+      .logout-button { background-image: linear-gradient(to right, var(--tw-gradient-stops)); --tw-gradient-from: #ef4444; --tw-gradient-to: #ec4899; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); color: white; font-weight: 600; padding: 0.375rem 0.75rem; border-radius: 0.5rem; transition: all 0.2s ease-in-out; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1); gap: 0.375rem; font-size: 0.875rem; line-height: 1.25rem; border: none; cursor: pointer; }
+      .logout-button:hover { box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); transform: translateY(-2px); }
+      .logout-button:active { transform: scale(0.95); }
+
+      .total-time-display { font-size: 0.875rem; font-weight: 500; color: #6b7280; display: flex; align-items: center; gap: 0.25rem; }
+      .svg-icon { display: inline-block; vertical-align: -0.125em; }
+      .edit-target-button { padding: 0.375rem; color: #9ca3af; border-radius: 9999px; transition: all 0.15s ease-in-out; border: none; background: none; cursor: pointer; }
+      .edit-target-button:hover { color: #4f46e5; background-color: #e0e7ff; }
+      #targetDateTimeContainer { margin-top: 0.5rem; padding: 1rem; background-color: white; border-radius: 0.5rem; border: 1px solid #e5e7eb; space-y: 0.75rem; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05); z-index: 20; }
+
+      /* --- Styly pro Panely (Chat, Feed, Mapa) --- */
+      .side-panel { position: fixed; top: 0; height: 100vh; width: 100%; max-width: 28rem; background-color: white; box-shadow: 0 0 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1); display: flex; flex-direction: column; transition: transform 0.3s ease-in-out; z-index: 50; }
+      .panel-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem; color: white; flex-shrink: 0; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1); }
+      .panel-header h3 { font-weight: 600; font-size: 1.125rem; line-height: 1.75rem; }
+      .panel-header button { padding: 0.375rem; border-radius: 9999px; transition: all 0.15s ease-in-out; border: none; background: none; cursor: pointer; }
+      .panel-header button:focus { outline: none; box-shadow: 0 0 0 2px white, 0 0 0 4px rgba(99, 102, 241, 0.6); }
+      .panel-content { flex-grow: 1; overflow-y: auto; background-color: #f9fafb; }
+
+      /* Chat */
+      #chatToggleButton { position: fixed; bottom: 1.5rem; right: 1.5rem; background-color: #4f46e5; color: white; padding: 1rem; border-radius: 9999px; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05); transition: all 0.2s ease-in-out; z-index: 40; border: none; cursor: pointer; }
+      #chatToggleButton:hover { background-color: #4338ca; transform: scale(1.1); }
+      #chatWindow { right: 0; border-left: 1px solid #e5e7eb; transform: translateX(100%); }
+      #chatWindow.open { transform: translateX(0); }
+      #chatHeader { background-color: #4f46e5; } #chatHeader button { color: #c7d2fe; } #chatHeader button:hover { background-color: rgba(255, 255, 255, 0.2); color: white; }
+      #chatMessages { padding: 1.5rem; space-y: 1rem; }
+      .chat-message { padding: 0.75rem 1rem; border-radius: 1rem; max-width: 85%; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); line-height: 1.6; word-break: break-word; }
+      .chat-message-user { background-color: #6366f1; color: white; margin-left: auto; border-bottom-right-radius: 0.25rem; }
+      .chat-message-ai { background-color: #ffffff; color: #374151; margin-right: auto; border: 1px solid #e5e7eb; border-bottom-left-radius: 0.25rem; }
+      #chatInputContainer { padding: 1rem; border-top: 1px solid #e5e7eb; background-color: #f9fafb; flex-shrink: 0; }
+      #chatInputContainer .flex { gap: 0.5rem; }
+      #chatInput { flex-grow: 1; padding: 0.75rem; background-color: white; border: 1px solid #d1d5db; border-radius: 0.75rem; transition: all 0.15s ease-in-out; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+      #chatInput:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5); }
+      #chatSendBtn { background-color: #4f46e5; color: white; padding: 0.75rem; border-radius: 0.75rem; transition: all 0.15s ease-in-out; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); border: none; cursor: pointer; }
+      #chatSendBtn:hover { background-color: #4338ca; } #chatSendBtn:active { transform: scale(0.95); }
+      #chatSendBtn:focus { outline: none; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.5); }
+
+      /* Feed */
+      #feedToggleButton { position: fixed; bottom: 1.5rem; left: 1.5rem; background-color: #10b981; color: white; padding: 1rem; border-radius: 9999px; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05); transition: all 0.2s ease-in-out; z-index: 40; border: none; cursor: pointer; }
+      #feedToggleButton:hover { background-color: #059669; transform: scale(1.1); }
+      #feedToggleButton:focus { outline: none; box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.5); }
+      #feedWindow { left: 0; border-right: 1px solid #e5e7eb; transform: translateX(-100%); }
+      #feedWindow.open { transform: translateX(0); }
+      #feedHeader { background-color: #10b981; } #feedHeader button { color: #a7f3d0; } #feedHeader button:hover { background-color: rgba(255, 255, 255, 0.2); color: white; }
+      #feedContent { padding: 1.5rem; }
+      .feed-post { background-color: white; border-radius: 0.75rem; padding: 1rem; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); border: 1px solid #e5e7eb; }
+      .feed-post:not(:last-child) { margin-bottom: 1rem; } .feed-post-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; } .feed-post-avatar { width: 2.5rem; height: 2.5rem; border-radius: 9999px; background-color: #e5e7eb; object-fit: cover; } .feed-post-user { font-weight: 600; color: #1f2937; } .feed-post-time { font-size: 0.75rem; color: #6b7280; margin-left: auto; } .feed-post-body { color: #374151; line-height: 1.6; margin-bottom: 0.75rem; } .feed-post-actions { display: flex; gap: 1rem; border-top: 1px solid #f3f4f6; padding-top: 0.75rem; } .feed-post-actions button { color: #6b7280; background: none; border: none; padding: 0.25rem; display: inline-flex; align-items: center; gap: 0.375rem; font-size: 0.875rem; cursor: pointer; transition: color 0.15s ease-in-out; } .feed-post-actions button:hover { color: #4f46e5; }
+
+      /* Mapa */
+      #mapToggleButton { padding: 0.5rem; border-radius: 9999px; transition: all 0.15s ease-in-out; transform-origin: center; display: flex; align-items: center; justify-content: center; color: #0f766e; border: none; background: none; cursor: pointer; }
+      #mapToggleButton:hover { transform: scale(1.1); background-color: #ccfbf1; }
+      #mapToggleButton:active { transform: scale(1); }
+      #mapToggleButton:focus { outline: none; box-shadow: 0 0 0 2px white, 0 0 0 4px rgba(20, 184, 166, 0.6); }
+      #mapWindow { position: fixed; top: 0; left: 0; right: 0; height: 75%; background-color: white; box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1); border-bottom: 1px solid #e5e7eb; display: flex; flex-direction: column; transition: transform 0.3s ease-in-out; transform: translateY(-100%); z-index: 50; }
+      #mapWindow.open { transform: translateY(0); }
+      #mapHeader { background-color: #0d9488; } #mapHeader button { color: #ccfbf1; } #mapHeader button:hover { background-color: rgba(255, 255, 255, 0.2); color: white; }
+      #mapContainer { flex-grow: 1; background-color: #e5e7eb; }
+      .leaflet-container:focus { outline: none !important; }
+      .map-popup-content { font-size: 0.875rem; line-height: 1.25rem; }
+      .map-popup-content label { display: block; margin-bottom: 0.25rem; font-weight: 500; color: #374151; }
+      .map-popup-content input { border: 1px solid #d1d5db; border-radius: 0.375rem; padding: 0.5rem 0.75rem; margin-bottom: 0.5rem; width: 180px; font-size: 0.875rem; }
+      .map-popup-content input:focus { border-color: #14b8a6; outline: none; box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.4); }
+      .map-popup-content button { background-color: #14b8a6; color: white; border: none; border-radius: 0.375rem; padding: 0.375rem 0.75rem; font-size: 0.875rem; cursor: pointer; transition: background-color 0.15s ease-in-out; }
+      .map-popup-content button:hover { background-color: #0d9488; }
+      .map-task-popup { font-size: 0.875rem; }
+      .map-task-popup p { margin: 0 0 0.5rem 0; font-weight: 600; color: #1f2937; }
+      .map-task-popup .button-group { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+      .map-task-popup button { border: none; border-radius: 0.375rem; padding: 0.25rem 0.6rem; font-size: 0.8rem; cursor: pointer; transition: all 0.15s ease-in-out; }
+      .map-task-popup button.toggle { background-color: #fbbf24; color: #78350f; }
+      .map-task-popup button.toggle:hover { background-color: #f59e0b; }
+      .map-task-popup button.toggle.completed { background-color: #4ade80; color: #14532d; }
+      .map-task-popup button.toggle.completed:hover { background-color: #22c55e; }
+      .map-task-popup button.delete { background-color: #fecaca; color: #991b1b; }
+      .map-task-popup button.delete:hover { background-color: #fca5a5; color: #7f1d1d; }
+      .location-button { padding: 0.25rem; border-radius: 9999px; transition: all 0.15s ease-in-out; color: #9ca3af; border: none; background: none; cursor: pointer; }
+      .location-button:hover { background-color: #f3f4f6; color: #4b5563; }
+      .location-button.has-location { color: #6366f1; }
+      .location-button.has-location:hover { background-color: #e0e7ff; color: #4338ca; }
+      .location-button svg { width: 1rem; height: 1rem; }
+      #mapLocationPickerMsg { position: absolute; top: 5rem; left: 50%; transform: translateX(-50%); background-color: rgba(0, 0, 0, 0.7); color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; z-index: 1000; pointer-events: none; }
+
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8">
+
+    <div id="loginForm" class="bg-white/80 backdrop-blur-lg p-8 rounded-2xl shadow-xl w-full max-w-md space-y-6 border border-gray-200/50"> <h2 class="text-3xl font-bold text-center text-gray-900">Přihlášení</h2> <p class="text-center text-sm text-red-600 font-semibold">Toto je pouze simulace, není bezpečná!</p> <div> <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Uživatelské jméno</label> <input type="text" id="username" placeholder="Zadejte 'user'" class="w-full"> </div> <div> <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Heslo</label> <input type="password" id="password" placeholder="Zadejte 'password'" class="w-full"> </div> <div id="loginError" class="text-red-600 text-sm text-center h-4"></div> <button id="loginBtn" class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold py-3 px-4 rounded-lg transition duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 active:scale-95"> Přihlásit se </button> <p class="text-center text-xs text-gray-500 pt-4">Pro demo použijte jméno: <strong>user</strong> a heslo: <strong>password</strong></p> </div>
+
+    <div id="appContent" class="hidden bg-white/70 backdrop-blur-xl p-6 sm:p-10 rounded-3xl shadow-2xl w-full max-w-5xl space-y-10 border border-white/20"> <div class="flex justify-between items-start flex-wrap gap-x-6 gap-y-4 pb-5 border-b-2 border-gray-200"> <h1 class="text-4xl font-bold text-gray-900">Můj časový manažer</h1> <div class="flex items-center gap-4"> <button id="mapToggleButton" title="Zobrazit mapu" class="hidden"> <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg> </button> <div class="text-right space-y-1.5"> <div id="clockDisplay" class="text-2xl font-semibold text-gray-800 flex items-center justify-end gap-2"> <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-blue-600 svg-icon"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> <span class="tabular-nums">--:--:--</span> </div> <div class="relative"> <div id="countdownDisplayWrapper" class="text-lg font-medium text-indigo-700 flex items-center justify-end gap-2"> <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 svg-icon"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg> <span id="countdownLabel" class="tabular-nums">Do čtvrtka zbývá: --</span> <button id="editTargetBtn" class="edit-target-button" title="Nastavit cíl odpočtu"> <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg> </button> </div> <div id="targetDateTimeContainer" class="hidden absolute right-0 z-20 w-60"> <label for="targetDateTimeInput" class="block text-xs font-medium text-gray-600 mb-1">Cílové datum a čas:</label> <input type="datetime-local" id="targetDateTimeInput" class="w-full text-sm p-2"> <button id="saveTargetBtn" class="w-full mt-2 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-semibold py-1.5 px-3 rounded-md transition duration-150">Uložit cíl</button> </div> </div> </div> <button id="logoutBtn" title="Odhlásit se" class="logout-button"> <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg> Odhlásit </button> </div> </div> <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center"> <div> <label for="newTaskInput" class="block text-base font-medium text-gray-700 mb-2">Nový úkol</label> <div class="flex items-center gap-3"> <input type="text" id="newTaskInput" placeholder="Zadejte úkol..." class="flex-grow"> <input type="number" id="newTaskDuration" placeholder="Min" min="1" class="w-20" title="Délka (min)"> <button id="addTaskBtn" title="Přidat úkol" class="add-icon-button-base add-icon-button-blue"> <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg> </button> </div> </div> <div> <label for="newFreeTimeInput" class="block text-base font-medium text-gray-700 mb-2">Volnočasová aktivita</label> <div class="flex items-center gap-3"> <input type="text" id="newFreeTimeInput" placeholder="Např. čtení, sport..." class="flex-grow"> <button id="addFreeTimeBtn" title="Přidat aktivitu" class="add-icon-button-base add-icon-button-green"> <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg> </button> </div> </div> </div> <div class="grid grid-cols-1 lg:grid-cols-3 gap-6"> <div class="list-section"> <h2> <span class="flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-orange-500 svg-icon"><path d="M16 21L7 21"/><path d="M16 17H7"/><path d="M16 13H7"/><path d="M16 9H7"/><path d="M21 7.5L18 10.5L16.5 9"/><path d="M21 15.5L18 18.5L16.5 17"/></svg> K dokončení</span> <span id="todoTotalTimeDisplay" class="total-time-display"></span> </h2> <ul id="todoList" class="space-y-3 min-h-[50px]"></ul> </div> <div class="list-section"> <h2> <span class="flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-green-500 svg-icon"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Dokončené</span> <span id="completedTotalTimeDisplay" class="total-time-display"></span> </h2> <ul id="completedList" class="space-y-3 min-h-[50px]"></ul> </div> <div class="list-section"> <h2 class="text-purple-800 border-purple-200"> <span class="flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-purple-500 svg-icon"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg> Volný čas</span> </h2> <ul id="freeTimeList" class="space-y-3 min-h-[50px]"></ul> </div> </div> <div id="messageBox" class="mt-8 text-center font-medium h-6"></div> </div>
+
+    <button id="feedToggleButton" title="Otevřít Feed" class="hidden"> <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> </button>
+    <button id="chatToggleButton" title="Otevřít Chat" class="hidden"> <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> </button>
+
+    <div id="chatWindow" class="side-panel"> <div id="chatHeader" class="panel-header"> <h3>Chat s AI (Simulace)</h3> <button id="chatCloseButton" title="Zavřít chat"> <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg> </button> </div> <div id="chatMessages" class="panel-content"> <div class="chat-message chat-message-ai">Ahoj! Jsem simulovaná AI. Jak ti mohu dnes pomoci s plánováním?</div> </div> <div id="chatInputContainer"> <div class="flex gap-2"> <input type="text" id="chatInput" placeholder="Napište zprávu..."> <button id="chatSendBtn"> <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> </button> </div> </div> </div>
+
+    <div id="feedWindow" class="side-panel"> <div id="feedHeader" class="panel-header"> <h3>Sociální Feed (Ukázka)</h3> <button id="feedCloseButton" title="Zavřít feed"> <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg> </button> </div> <div id="feedContent" class="panel-content"> <div class="feed-post"> <div class="feed-post-header"> <img src="https://placehold.co/40x40/a7f3d0/059669?text=JA" alt="Avatar Jan" class="feed-post-avatar"> <div> <div class="feed-post-user">Jan Novák</div> <div class="text-xs text-gray-500">před 5 minutami</div> </div> </div> <div class="feed-post-body"> Právě jsem dokončil důležitý úkol! Skvělý pocit. #produktivita </div> <div class="feed-post-actions"> <button><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"/></svg> Líbí se</button> <button><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Komentovat</button> </div> </div> <div class="feed-post"> <div class="feed-post-header"> <img src="https://placehold.co/40x40/c7d2fe/4f46e5?text=EP" alt="Avatar Eva" class="feed-post-avatar"> <div> <div class="feed-post-user">Eva Procházková</div> <div class="text-xs text-gray-500">před 1 hodinou</div> </div> </div> <div class="feed-post-body"> Dneska krásně svítí sluníčko, ideální na krátkou procházku ve volném čase. ☀️ </div> <div class="feed-post-actions"> <button><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"/></svg> Líbí se</button> <button><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Komentovat</button> </div> </div> </div>
+    </div>
+
+    <div id="mapWindow" class=""> <div id="mapHeader" class="panel-header">
+            <h3>Mapa</h3>
+            <button id="mapCloseButton" title="Zavřít mapu">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+            </button>
+        </div>
+        <div id="mapContainer" class="panel-content !p-0"></div>
+        <div id="mapLocationPickerMsg" class="hidden">Klikněte na mapu pro výběr lokace úkolu...</div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+
+    <script>
+        // === Získání elementů z DOM (beze změny) ===
+        const loginForm = document.getElementById('loginForm');
+        const appContent = document.getElementById('appContent');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginError = document.getElementById('loginError');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const newTaskInput = document.getElementById('newTaskInput');
+        const newTaskDurationInput = document.getElementById('newTaskDuration');
+        const addTaskBtn = document.getElementById('addTaskBtn');
+        const todoList = document.getElementById('todoList');
+        const completedList = document.getElementById('completedList');
+        const messageBox = document.getElementById('messageBox');
+        const newFreeTimeInput = document.getElementById('newFreeTimeInput');
+        const addFreeTimeBtn = document.getElementById('addFreeTimeBtn');
+        const freeTimeList = document.getElementById('freeTimeList');
+        const clockDisplay = document.getElementById('clockDisplay').querySelector('span:last-child');
+        const countdownLabel = document.getElementById('countdownLabel');
+        const todoTotalTimeDisplay = document.getElementById('todoTotalTimeDisplay');
+        const completedTotalTimeDisplay = document.getElementById('completedTotalTimeDisplay');
+        const editTargetBtn = document.getElementById('editTargetBtn');
+        const targetDateTimeContainer = document.getElementById('targetDateTimeContainer');
+        const targetDateTimeInput = document.getElementById('targetDateTimeInput');
+        const saveTargetBtn = document.getElementById('saveTargetBtn');
+        const chatToggleButton = document.getElementById('chatToggleButton');
+        const chatWindow = document.getElementById('chatWindow');
+        const chatCloseButton = document.getElementById('chatCloseButton');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const chatSendBtn = document.getElementById('chatSendBtn');
+        const feedToggleButton = document.getElementById('feedToggleButton');
+        const feedWindow = document.getElementById('feedWindow');
+        const feedCloseButton = document.getElementById('feedCloseButton');
+        const feedContent = document.getElementById('feedContent');
+        const mapToggleButton = document.getElementById('mapToggleButton');
+        const mapWindow = document.getElementById('mapWindow');
+        const mapCloseButton = document.getElementById('mapCloseButton');
+        const mapContainer = document.getElementById('mapContainer');
+        const mapLocationPickerMsg = document.getElementById('mapLocationPickerMsg');
+
+        let mainTimerInterval = null;
+        let mapInstance = null;
+        let mapInitialized = false;
+        let mainTaskList = []; // Změna z taggedPlaces
+        let taskMarkers = {};
+        let pickingLocationForTaskId = null;
+
+        const MAIN_TASK_LIST_KEY = 'mainTaskList'; // Změna klíče
+
+        // === Definice vlastních ikon pro Leaflet (L.divIcon) ===
+        const defaultDivIcon = L.divIcon({ html: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#3B82F6" stroke="white" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>`, className: '', iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24] });
+        const completedDivIcon = L.divIcon({ html: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#6B7280" stroke="white" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>`, className: '', iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24] });
+
+        // === Funkce pro ukládání a načítání hlavních úkolů ===
+        function saveMainTasks() { try { localStorage.setItem(MAIN_TASK_LIST_KEY, JSON.stringify(mainTaskList)); } catch (error) { console.error("Chyba při ukládání hlavních úkolů:", error); } }
+        function loadMainTasks() { try { const storedData = localStorage.getItem(MAIN_TASK_LIST_KEY); mainTaskList = storedData ? JSON.parse(storedData) : []; if (!Array.isArray(mainTaskList)) mainTaskList = []; } catch (error) { console.error("Chyba při načítání hlavních úkolů:", error); mainTaskList = []; } }
+
+        // === Ostatní JS funkce (handleLogin, handleLogout, showLoginForm, showAppContent, updateAllTimers, showMessage, addPlaceholder, removePlaceholder, formatTime, updateTotalTimes, formatElapsedTime, updateElapsedTimesUI, createTaskElement, addTask, toggleComplete, deleteTask, createFreeTimeElement, addFreeTimeActivity, deleteFreeTimeActivity, appendChatMessage, getAIResponse, handleSendMessage, initializeMap, addOrUpdateTaskMarker, loadTaskMarkers, removeTaskMarker, updateTaskMarkerIcon, promptSetLocation, onMapClick, initializeAppData) ===
+        // --- Začátek kódu funkcí (aktualizováno pro mainTaskList a propojení s mapou) ---
+         function handleLogin() { const username = usernameInput.value.trim(); const password = passwordInput.value; if (username === 'user' && password === 'password') { localStorage.setItem('isLoggedIn', 'true'); showAppContent(); loginError.textContent = ''; usernameInput.value = ''; passwordInput.value = ''; } else { loginError.textContent = 'Nesprávné jméno nebo heslo.'; localStorage.removeItem('isLoggedIn'); } }
+        function handleLogout() { localStorage.removeItem('isLoggedIn'); localStorage.removeItem('countdownTarget'); localStorage.removeItem(MAIN_TASK_LIST_KEY); showLoginForm(); } // Maže i hlavní úkoly
+        function showLoginForm() { loginForm.classList.remove('hidden'); appContent.classList.add('hidden'); chatToggleButton.classList.add('hidden'); feedToggleButton.classList.add('hidden'); mapToggleButton.classList.add('hidden'); chatWindow.classList.remove('open'); feedWindow.classList.remove('open'); mapWindow.classList.remove('open'); if (mainTimerInterval) { clearInterval(mainTimerInterval); mainTimerInterval = null; } clockDisplay.textContent = '--:--:--'; countdownLabel.textContent = 'Cíl nenastaven'; targetDateTimeContainer.classList.add('hidden'); }
+        function showAppContent() { loginForm.classList.add('hidden'); appContent.classList.remove('hidden'); chatToggleButton.classList.remove('hidden'); feedToggleButton.classList.remove('hidden'); mapToggleButton.classList.remove('hidden'); initializeAppData(); }
+        function updateAllTimers() { const now = new Date(); const hours = String(now.getHours()).padStart(2, '0'); const minutes = String(now.getMinutes()).padStart(2, '0'); const seconds = String(now.getSeconds()).padStart(2, '0'); clockDisplay.textContent = `${hours}:${minutes}:${seconds}`; let targetDate = null; const storedTarget = localStorage.getItem('countdownTarget'); if (storedTarget) { targetDate = new Date(storedTarget); if (isNaN(targetDate.getTime())) { targetDate = null; localStorage.removeItem('countdownTarget'); } } if (!targetDate) { targetDate = new Date(now); const currentDay = now.getDay(); const daysUntilThursday = (4 - currentDay + 7) % 7; const daysToAdd = daysUntilThursday === 0 ? 7 : daysUntilThursday; targetDate.setDate(now.getDate() + daysToAdd); targetDate.setHours(0, 0, 0, 0); } const diffMs = targetDate - now; if (diffMs <= 0) { countdownLabel.textContent = "Cílový čas vypršel!"; } else { const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24)); const diffHrs = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)); const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60)); const diffSecs = Math.floor((diffMs % (1000 * 60)) / 1000); let labelPrefix = storedTarget ? "Do cíle zbývá: " : "Do čtvrtka zbývá: "; let countdownText = ""; if (diffDays > 0) { countdownText += `${diffDays} ${diffDays === 1 ? 'den' : (diffDays < 5 ? 'dny' : 'dní')} `; } countdownText += `${String(diffHrs).padStart(2, '0')}:${String(diffMins).padStart(2, '0')}:${String(diffSecs).padStart(2, '0')}`; countdownLabel.textContent = labelPrefix + countdownText; } updateElapsedTimesUI(); }
+        function showMessage(message, type = 'info') { messageBox.textContent = message; let colorClass = 'text-gray-600'; if (type === 'success') colorClass = 'text-green-600'; if (type === 'error') colorClass = 'text-red-600'; messageBox.className = `mt-8 text-center font-medium h-6 ${colorClass}`; setTimeout(() => { messageBox.textContent = ''; }, 3000); }
+        function addPlaceholder(list, text) { const existingPlaceholder = list.querySelector('.placeholder-item'); if (list.children.length === 0 && !existingPlaceholder) { const li = document.createElement('li'); li.className = "text-slate-400 italic placeholder-item p-5 text-center"; li.textContent = text; list.appendChild(li); } else if (list.children.length > 0 && existingPlaceholder) { existingPlaceholder.remove(); } /* updateTotalTimes se volá v renderTaskLists */ }
+        function removePlaceholder(list) { const placeholder = list.querySelector('.placeholder-item'); if (placeholder) placeholder.remove(); /* updateTotalTimes se volá v renderTaskLists */ }
+        function formatTime(totalMinutes) { if (totalMinutes === 0 || totalMinutes === null || isNaN(totalMinutes)) { return ''; } const hours = Math.floor(totalMinutes / 60); const minutes = totalMinutes % 60; let formattedTime = ''; if (hours > 0) { formattedTime += `${hours}h `; } if (minutes > 0) { formattedTime += `${minutes}m`; } const clockIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 inline-block text-gray-400 svg-icon"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`; return `${clockIconSvg} ${formattedTime.trim()}`; }
+        function updateTotalTimes() { let todoTotal = 0; let completedTotal = 0; mainTaskList.forEach(task => { const duration = parseInt(task.duration, 10); if (!isNaN(duration)) { if (task.completed) completedTotal += duration; else todoTotal += duration; } }); todoTotalTimeDisplay.innerHTML = formatTime(todoTotal); completedTotalTimeDisplay.innerHTML = formatTime(completedTotal); }
+        function formatElapsedTime(createdTimestamp) { if (!createdTimestamp) return ''; const now = new Date(); const createdDate = new Date(createdTimestamp); const diffSeconds = Math.floor((now - createdDate) / 1000); if (diffSeconds < 2) { return `právě teď`; } if (diffSeconds < 60) { return `před ${diffSeconds} s`; } const diffMinutes = Math.floor(diffSeconds / 60); if (diffMinutes < 60) { return `před ${diffMinutes} min`; } const diffHours = Math.floor(diffMinutes / 60); if (diffHours < 24) { return `před ${diffHours} ${diffHours === 1 ? 'hod' : (diffHours < 5 ? 'hod' : 'hod')}`; } const diffDays = Math.floor(diffHours / 24); return `před ${diffDays} ${diffDays === 1 ? 'dnem' : (diffDays < 5 ? 'dny' : 'dny')}`; }
+        function updateElapsedTimesUI() { const taskItems = document.querySelectorAll('#todoList li:not(.placeholder-item), #freeTimeList li:not(.placeholder-item)'); taskItems.forEach(item => { const createdTimestamp = item.dataset.created; const elapsedTimeElement = item.querySelector('.elapsed-time'); if (createdTimestamp && elapsedTimeElement) { elapsedTimeElement.textContent = formatElapsedTime(createdTimestamp); } }); }
+        function renderTaskLists() { todoList.innerHTML = ''; completedList.innerHTML = ''; mainTaskList.forEach(task => { const taskElement = createTaskElement(task); if (task.completed) { completedList.appendChild(taskElement); } else { todoList.appendChild(taskElement); } }); addPlaceholder(todoList, "Žádné úkoly k dokončení."); addPlaceholder(completedList, "Žádné dokončené úkoly."); updateTotalTimes(); }
+        function createTaskElement(task) { const li = document.createElement('li'); li.dataset.id = task.id; li.dataset.created = task.createdTimestamp; // Přidáno pro elapsed time
+             if(task.lat) li.dataset.lat = task.lat; // Přidáno pro mapu
+             if(task.lng) li.dataset.lng = task.lng; // Přidáno pro mapu
+             li.className = `task-item flex items-center justify-between p-4 ${task.completed ? 'completed' : ''}`;
+             const textDiv = document.createElement('div'); textDiv.className = "flex-grow mr-4 break-words min-w-0";
+             const textSpan = document.createElement('span'); textSpan.textContent = task.text; textSpan.className = "task-text text-base"; textDiv.appendChild(textSpan);
+             const tagsDiv = document.createElement('div'); tagsDiv.className = "flex items-center flex-wrap mt-1";
+             if (task.duration) { const durationSpan = document.createElement('span'); durationSpan.className = 'task-duration'; const clockIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 inline-block text-slate-500 svg-icon"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`; durationSpan.innerHTML = `${clockIconSvg} ${task.duration} min`; tagsDiv.appendChild(durationSpan); }
+             if (!task.completed) { const elapsedTimeSpan = document.createElement('span'); elapsedTimeSpan.className = 'elapsed-time'; elapsedTimeSpan.textContent = formatElapsedTime(task.createdTimestamp); tagsDiv.appendChild(elapsedTimeSpan); }
+             if (tagsDiv.children.length > 0) { textDiv.appendChild(tagsDiv); }
+             const buttonDiv = document.createElement('div'); buttonDiv.className = "flex-shrink-0 flex items-center gap-2";
+             if (!task.completed) { const locationBtn = document.createElement('button'); const hasLocation = task.lat && task.lng; locationBtn.className = `location-button ${hasLocation ? 'has-location' : ''}`; locationBtn.title = hasLocation ? "Zobrazit lokaci na mapě" : "Přidat lokaci na mapu"; locationBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>`; locationBtn.onclick = () => promptSetLocation(task.id); buttonDiv.appendChild(locationBtn); }
+             const completeBtn = document.createElement('button'); const completeIconSvg = task.completed ? `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M21 12a9 9 0 0 0-9-9H7.83a2 2 0 0 0-1.41.59L3 7m18 5v5a2 2 0 0 1-2 2H3"/><path d="m7 15 4 4 6-6"/><path d="M3 7V5a2 2 0 0 1 2-2h2"/></svg>` : `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`; completeBtn.innerHTML = completeIconSvg; completeBtn.className = `action-button ${task.completed ? 'action-button-undo' : 'action-button-complete'}`; completeBtn.title = task.completed ? "Vrátit zpět" : "Označit jako dokončené"; completeBtn.onclick = () => toggleComplete(task.id);
+             const deleteBtn = document.createElement('button'); deleteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>`; deleteBtn.className = "action-button action-button-delete"; deleteBtn.title = "Smazat úkol"; deleteBtn.onclick = () => deleteTask(task.id);
+             buttonDiv.appendChild(completeBtn); buttonDiv.appendChild(deleteBtn);
+             li.appendChild(textDiv); li.appendChild(buttonDiv);
+             return li;
+         }
+        function addTask() { const taskText = newTaskInput.value.trim(); const taskDuration = newTaskDurationInput.value.trim(); if (taskText === "") { showMessage("Nelze přidat prázdný úkol.", 'error'); return; } const durationValue = taskDuration ? parseInt(taskDuration, 10) : null; if (taskDuration && (isNaN(durationValue) || durationValue <= 0)) { showMessage("Doba trvání musí být kladné číslo.", 'error'); return; } const newTask = { id: `task-${Date.now()}`, text: taskText, duration: durationValue, createdTimestamp: new Date().toISOString(), completed: false, lat: null, lng: null }; mainTaskList.push(newTask); saveMainTasks(); renderTaskLists(); newTaskInput.value = ""; newTaskDurationInput.value = ""; newTaskInput.focus(); showMessage("Úkol přidán.", 'success'); }
+        function toggleComplete(taskId) { const taskIndex = mainTaskList.findIndex(task => task.id === taskId); if (taskIndex > -1) { const task = mainTaskList[taskIndex]; task.completed = !task.completed; saveMainTasks(); renderTaskLists(); updateTaskMarkerIcon(taskId); } }
+        function deleteTask(taskId) { const taskIndex = mainTaskList.findIndex(task => task.id === taskId); if (taskIndex > -1) { const deletedTask = mainTaskList.splice(taskIndex, 1); saveMainTasks(); renderTaskLists(); removeTaskMarker(taskId); showMessage(`Úkol "${deletedTask[0]?.text || ''}" smazán.`, 'info'); } }
+        function createFreeTimeElement(activityText, createdTimestamp = null) { const li = document.createElement('li'); li.dataset.created = createdTimestamp || new Date().toISOString(); li.className = `free-time-item flex items-center justify-between p-4`; const textDiv = document.createElement('div'); textDiv.className = "flex-grow mr-4 break-words min-w-0"; const textSpan = document.createElement('span'); textSpan.textContent = activityText; textSpan.className = "text-purple-900 text-base"; textDiv.appendChild(textSpan); const tagsDiv = document.createElement('div'); tagsDiv.className = "flex items-center flex-wrap mt-1"; const elapsedTimeSpan = document.createElement('span'); elapsedTimeSpan.className = 'elapsed-time'; elapsedTimeSpan.textContent = formatElapsedTime(li.dataset.created); tagsDiv.appendChild(elapsedTimeSpan); textDiv.appendChild(tagsDiv); const deleteBtn = document.createElement('button'); deleteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>`; deleteBtn.className = "action-button action-button-delete flex-shrink-0"; deleteBtn.title = "Smazat aktivitu"; deleteBtn.onclick = () => deleteFreeTimeActivity(li); li.appendChild(textDiv); li.appendChild(deleteBtn); return li; } // Poznámka: Free time items nejsou v poli a localStorage
+        function addFreeTimeActivity() { const activityText = newFreeTimeInput.value.trim(); if (activityText === "") { showMessage("Nelze přidat prázdnou aktivitu.", 'error'); return; } removePlaceholder(freeTimeList); const creationTimestamp = new Date().toISOString(); const activityElement = createFreeTimeElement(activityText, creationTimestamp); freeTimeList.appendChild(activityElement); newFreeTimeInput.value = ""; newFreeTimeInput.focus(); showMessage("Volnočasová aktivita přidána.", 'success'); }
+        function deleteFreeTimeActivity(activityItem) { activityItem.remove(); showMessage("Aktivita smazána.", 'info'); addPlaceholder(freeTimeList, "Žádné volnočasové aktivity."); }
+        function appendChatMessage(message, sender) { const messageDiv = document.createElement('div'); messageDiv.textContent = message; messageDiv.className = `chat-message ${sender === 'user' ? 'chat-message-user' : 'chat-message-ai'}`; chatMessages.appendChild(messageDiv); chatMessages.scrollTop = chatMessages.scrollHeight; }
+        function getAIResponse(userMessage) { const responses = ["Zajímavé, řekni mi víc.", "Rozumím. Jak to souvisí s tvými úkoly?", "To zní jako dobrý plán.", "Můžeš to zkusit rozvést?", "Děkuji za informaci.", "Jaký další krok plánuješ?", "Dobře, zaznamenávám si to.", "Na co se chceš teď zaměřit?",]; const lowerMessage = userMessage.toLowerCase(); if (lowerMessage.includes("úkol") || lowerMessage.includes("task")) { return "Máš na mysli nějaký konkrétní úkol ze seznamu?"; } if (lowerMessage.includes("čas") || lowerMessage.includes("time")) { return "Ano, čas je důležitý. Jak ti mohu pomoci s jeho plánováním?"; } if (lowerMessage.includes("ahoj") || lowerMessage.includes("hello") || lowerMessage.includes("čau")) { return "Ahoj! V čem ti mohu být nápomocen?"; } return responses[Math.floor(Math.random() * responses.length)]; }
+        function handleSendMessage() { const message = chatInput.value.trim(); if (message === '') return; appendChatMessage(message, 'user'); chatInput.value = ''; setTimeout(() => { const aiResponse = getAIResponse(message); appendChatMessage(aiResponse, 'ai'); }, 600 + Math.random() * 500); }
+        function addOrUpdateTaskMarker(task) { if (!mapInstance || !task || typeof task.lat !== 'number' || typeof task.lng !== 'number') return; removeTaskMarker(task.id); const icon = task.completed ? completedDivIcon : defaultDivIcon; const marker = L.marker([task.lat, task.lng], { icon: icon }).addTo(mapInstance); marker.bindTooltip(task.text); marker.bindPopup(`<p class="font-semibold">${task.text}</p>`); taskMarkers[task.id] = marker; }
+        function loadTaskMarkers() { if (!mapInstance) return; Object.values(taskMarkers).forEach(marker => mapInstance.removeLayer(marker)); taskMarkers = {}; mainTaskList.forEach(task => { if (typeof task.lat === 'number' && typeof task.lng === 'number') { addOrUpdateTaskMarker(task); } }); }
+        function removeTaskMarker(taskId) { if (taskMarkers[taskId]) { if (mapInstance) { mapInstance.removeLayer(taskMarkers[taskId]); } delete taskMarkers[taskId]; } }
+        function updateTaskMarkerIcon(taskId) { const marker = taskMarkers[taskId]; const task = mainTaskList.find(t => t.id === taskId); if (marker && task) { marker.setIcon(task.completed ? completedDivIcon : defaultDivIcon); } }
+        function promptSetLocation(taskId) { const task = mainTaskList.find(t => t.id === taskId); if (!task) return; if (task.lat && task.lng) { mapWindow.classList.add('open'); if (!mapInitialized) { initializeMap(); setTimeout(() => { if (mapInstance) mapInstance.flyTo([task.lat, task.lng], 15); }, 200); } else { if (mapInstance) { mapInstance.flyTo([task.lat, task.lng], 15); if (taskMarkers[taskId]) { setTimeout(() => taskMarkers[taskId].openPopup(), 300); } } } pickingLocationForTaskId = null; mapLocationPickerMsg.classList.add('hidden'); } else { pickingLocationForTaskId = taskId; mapWindow.classList.add('open'); mapLocationPickerMsg.classList.remove('hidden'); if (!mapInitialized) { initializeMap(); } else { setTimeout(() => { if (mapInstance) { mapInstance.invalidateSize(); } }, 100); } showMessage("Klikněte na mapu pro výběr lokace úkolu.", "info"); } }
+        function onMapClick(e) { if (!mapInstance) return; if (pickingLocationForTaskId) { const lat = e.latlng.lat; const lng = e.latlng.lng; const taskId = pickingLocationForTaskId; const taskIndex = mainTaskList.findIndex(t => t.id === taskId); if (taskIndex > -1) { mainTaskList[taskIndex].lat = lat; mainTaskList[taskIndex].lng = lng; saveMainTasks(); addOrUpdateTaskMarker(mainTaskList[taskIndex]); renderTaskLists(); showMessage(`Lokace pro úkol "${mainTaskList[taskIndex].text}" nastavena.`, 'success'); } pickingLocationForTaskId = null; mapLocationPickerMsg.classList.add('hidden'); mapWindow.classList.remove('open'); } else { L.popup().setLatLng(e.latlng).setContent(`Souřadnice: ${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`).openOn(mapInstance); } }
+        function initializeMap() { if (mapInitialized) return; try { const hodoninCoords = [48.848, 17.128]; mapInstance = L.map(mapContainer).setView(hodoninCoords, 13); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }).addTo(mapInstance); mapInstance.on('click', onMapClick); mapInitialized = true; loadTaskMarkers(); setTimeout(() => { if (mapInstance) { mapInstance.invalidateSize(); } }, 100); } catch (error) { console.error("Chyba při inicializaci mapy:", error); mapContainer.innerHTML = '<p class="p-4 text-red-600">Nepodařilo se načíst mapu.</p>'; } }
+        function initializeAppData() { loadMainTasks(); renderTaskLists(); addPlaceholder(freeTimeList, "Žádné volnočasové aktivity."); const storedTarget = localStorage.getItem('countdownTarget'); if (storedTarget) { try { const d = new Date(storedTarget); if (isNaN(d.getTime())) throw new Error("Invalid date stored"); const year = d.getFullYear(); const month = String(d.getMonth() + 1).padStart(2, '0'); const day = String(d.getDate()).padStart(2, '0'); const hours = String(d.getHours()).padStart(2, '0'); const minutes = String(d.getMinutes()).padStart(2, '0'); targetDateTimeInput.value = `${year}-${month}-${day}T${hours}:${minutes}`; } catch (error) { console.error("Error setting datetime input from localStorage:", error); localStorage.removeItem('countdownTarget'); targetDateTimeInput.value = ''; } } else { targetDateTimeInput.value = ''; } if (!mainTimerInterval) { updateAllTimers(); mainTimerInterval = setInterval(updateAllTimers, 1000); } addTaskBtn.onclick = addTask; newTaskInput.onkeypress = function(event) { if (event.key === 'Enter') addTask(); }; newTaskDurationInput.onkeypress = function(event) { if (event.key === 'Enter') addTask(); }; addFreeTimeBtn.onclick = addFreeTimeActivity; newFreeTimeInput.onkeypress = function(event) { if (event.key === 'Enter') addFreeTimeActivity(); }; }
+        // --- Konec kódu funkcí ---
+
+        // === Kontrola stavu přihlášení a PŘIŘAZENÍ UDÁLOSTÍ ===
+        window.onload = () => {
+            if (localStorage.getItem('isLoggedIn') === 'true') {
+                showAppContent();
+            } else {
+                showLoginForm();
+            }
+            loginBtn.addEventListener('click', handleLogin);
+            logoutBtn.addEventListener('click', handleLogout);
+             passwordInput.addEventListener('keypress', function(event) { if (event.key === 'Enter') handleLogin(); });
+             usernameInput.addEventListener('keypress', function(event) { if (event.key === 'Enter') handleLogin(); });
+             editTargetBtn.addEventListener('click', () => { targetDateTimeContainer.classList.toggle('hidden'); });
+             saveTargetBtn.addEventListener('click', () => { const targetValue = targetDateTimeInput.value; if (targetValue) { const targetDate = new Date(targetValue); const now = new Date(); if (targetDate > now) { localStorage.setItem('countdownTarget', targetDate.toISOString()); updateAllTimers(); targetDateTimeContainer.classList.add('hidden'); showMessage('Cíl odpočtu uložen.', 'success'); } else { showMessage('Cílový čas musí být v budoucnosti.', 'error'); } } else { localStorage.removeItem('countdownTarget'); updateAllTimers(); targetDateTimeContainer.classList.add('hidden'); showMessage('Vlastní cíl odpočtu odstraněn.', 'info'); } });
+             chatToggleButton.addEventListener('click', () => { chatWindow.classList.add('open'); });
+             chatCloseButton.addEventListener('click', () => { chatWindow.classList.remove('open'); });
+             chatSendBtn.addEventListener('click', handleSendMessage);
+             chatInput.addEventListener('keypress', (event) => { if (event.key === 'Enter') { handleSendMessage(); } });
+             feedToggleButton.addEventListener('click', () => { feedWindow.classList.toggle('open'); });
+             if (feedCloseButton) { feedCloseButton.addEventListener('click', () => { feedWindow.classList.remove('open'); }); } else { console.error("Feed close button not found!"); }
+             mapToggleButton.addEventListener('click', () => { pickingLocationForTaskId = null; mapLocationPickerMsg.classList.add('hidden'); mapWindow.classList.add('open'); if (!mapInitialized) { initializeMap(); } else { setTimeout(() => { if (mapInstance) { mapInstance.invalidateSize(); } }, 100); } });
+             mapCloseButton.addEventListener('click', () => { pickingLocationForTaskId = null; mapLocationPickerMsg.classList.add('hidden'); mapWindow.classList.remove('open'); });
+        };
+
+    </script>
+
+</body>
+</html>
