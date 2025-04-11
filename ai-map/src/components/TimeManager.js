@@ -291,7 +291,7 @@ function TimeManager({ onLocationTasks }) {
               placeholder="Zadejte úkol..."
               value={newTask}
               onChange={(e) => setNewTask(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && addTask()}
+              onKeyDown={(e) => e.key === 'Enter' && addTask()}
             />
             <div className="duration-input-container">
               <input
@@ -299,7 +299,7 @@ function TimeManager({ onLocationTasks }) {
                 placeholder="Min"
                 value={newTaskDuration}
                 onChange={(e) => setNewTaskDuration(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && addTask()}
+                onKeyDown={(e) => e.key === 'Enter' && addTask()}
               />
               <button
                 className={`estimate-button ${isEstimatingDuration ? 'loading' : ''}`}
@@ -330,7 +330,7 @@ function TimeManager({ onLocationTasks }) {
               placeholder="Např. čtení, sport..."
               value={newFreeTimeActivity}
               onChange={(e) => setNewFreeTimeActivity(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && addFreeTimeActivity()}
+              onKeyDown={(e) => e.key === 'Enter' && addFreeTimeActivity()}
             />
             <button className="add-button green" onClick={addFreeTimeActivity}>
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
