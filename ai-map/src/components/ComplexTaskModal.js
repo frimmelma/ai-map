@@ -41,6 +41,7 @@ function ComplexTaskModal({ isOpen, onClose, onTasksCreated, onLocationTasksCrea
           };
 
           console.log(`Formatted subtask ${index}:`, formattedSubtask);
+          alert(`Dílčí úkol ${index}: ${formattedSubtask.text}`);
           return formattedSubtask;
         });
 
@@ -51,11 +52,14 @@ function ComplexTaskModal({ isOpen, onClose, onTasksCreated, onLocationTasksCrea
         console.log('Formatted subtasks:', formattedSubtasks);
 
         // Send all tasks to the task handler
+        console.log('Calling onTasksCreated with:', formattedSubtasks);
+        alert('Odesílám úkoly do TimeManager: ' + formattedSubtasks.length);
         onTasksCreated(formattedSubtasks);
 
         // Also send location tasks to the location handler if there are any
         if (locationTasks.length > 0 && onLocationTasksCreated) {
           console.log('Location tasks:', locationTasks);
+          alert('Odesílám lokace: ' + locationTasks.length);
           onLocationTasksCreated(locationTasks);
         }
 

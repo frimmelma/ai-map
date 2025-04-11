@@ -107,12 +107,17 @@ function App() {
 
   // Handle location tasks from TimeManager
   const handleLocationTasks = (tasks) => {
+    console.log('App received location tasks:', tasks);
+    alert('App obdržela lokace: ' + tasks.length);
+
     setLocationTasks(tasks);
     // Automatically switch to map view when location tasks are added
     setShowMap(true);
 
     // If there are location tasks, search for the first one
     if (tasks && tasks.length > 0) {
+      console.log('Searching for location:', tasks[0].location);
+      alert('Hledám lokaci: ' + tasks[0].location);
       handleSearch(tasks[0].location);
     }
   };

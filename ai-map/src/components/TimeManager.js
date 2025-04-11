@@ -22,24 +22,60 @@ function TimeManager({ onLocationTasks }) {
 
   // Initialize from localStorage if available
   useEffect(() => {
+    console.log('Initializing from localStorage');
+    alert('Načítám data z localStorage');
+
     const storedTasks = localStorage.getItem('tasks');
     const storedCompletedTasks = localStorage.getItem('completedTasks');
     const storedFreeTimeActivities = localStorage.getItem('freeTimeActivities');
     const storedSchedule = localStorage.getItem('schedule');
 
+    console.log('Raw stored tasks:', storedTasks);
+
     if (storedTasks) {
       try {
         const parsedTasks = JSON.parse(storedTasks);
         console.log('Loaded tasks from localStorage:', parsedTasks);
+        alert('Načteno úkolů z localStorage: ' + parsedTasks.length);
         setTasks(parsedTasks);
       } catch (error) {
         console.error('Error parsing tasks from localStorage:', error);
+        alert('Chyba při načítání úkolů: ' + error.message);
+      }
+    } else {
+      console.log('No tasks found in localStorage');
+      alert('Žádné úkoly v localStorage');
+    }
+
+    if (storedCompletedTasks) {
+      try {
+        const parsedCompletedTasks = JSON.parse(storedCompletedTasks);
+        console.log('Loaded completed tasks from localStorage:', parsedCompletedTasks);
+        setCompletedTasks(parsedCompletedTasks);
+      } catch (error) {
+        console.error('Error parsing completed tasks from localStorage:', error);
       }
     }
 
-    if (storedCompletedTasks) setCompletedTasks(JSON.parse(storedCompletedTasks));
-    if (storedFreeTimeActivities) setFreeTimeActivities(JSON.parse(storedFreeTimeActivities));
-    if (storedSchedule) setSchedule(JSON.parse(storedSchedule));
+    if (storedFreeTimeActivities) {
+      try {
+        const parsedActivities = JSON.parse(storedFreeTimeActivities);
+        console.log('Loaded activities from localStorage:', parsedActivities);
+        setFreeTimeActivities(parsedActivities);
+      } catch (error) {
+        console.error('Error parsing activities from localStorage:', error);
+      }
+    }
+
+    if (storedSchedule) {
+      try {
+        const parsedSchedule = JSON.parse(storedSchedule);
+        console.log('Loaded schedule from localStorage:', parsedSchedule);
+        setSchedule(parsedSchedule);
+      } catch (error) {
+        console.error('Error parsing schedule from localStorage:', error);
+      }
+    }
 
     // Check if API key is set, if not, show the modal
     if (!hasApiKey()) {
@@ -152,36 +188,58 @@ function TimeManager({ onLocationTasks }) {
   // Handle adding multiple subtasks from complex task breakdown
   const handleAddSubtasks = (subtasks) => {
     console.log('Adding subtasks:', subtasks); // Debug log
+    alert('Přidávám dílčí úkoly: ' + subtasks.length); // Alert for debugging
 
     if (!subtasks || subtasks.length === 0) {
       console.error('No subtasks received');
+      alert('Žádné dílčí úkoly nebyly přijaty');
       return;
     }
 
     // Make sure each subtask has the required properties
-    const validSubtasks = subtasks.map(subtask => ({
-      ...subtask,
-      id: subtask.id || Date.now() + Math.random(),
-      text: subtask.text || 'Úkol',
-      duration: subtask.duration || 30,
-      completed: false,
-      createdAt: subtask.createdAt || new Date().toISOString()
-    }));
+    const validSubtasks = subtasks.map((subtask, index) => {
+      const validSubtask = {
+        id: Date.now() + index, // Use index to ensure unique IDs
+        text: subtask.text || 'Úkol',
+        duration: parseInt(subtask.duration) || 30,
+        completed: false,
+        createdAt: new Date().toISOString(),
+        location: subtask.location || null,
+        requires_travel: subtask.requires_travel || false
+      };
+      console.log(`Valid subtask ${index}:`, validSubtask);
+      return validSubtask;
+    });
 
     console.log('Valid subtasks:', validSubtasks);
+    alert('Validní dílčí úkoly: ' + validSubtasks.length);
 
     // Add the new subtasks to the existing tasks
     const newTasks = [...tasks, ...validSubtasks];
+    console.log('New tasks array:', newTasks);
 
     // Update state
     setTasks(newTasks);
 
     // Save to localStorage immediately
     try {
-      localStorage.setItem('tasks', JSON.stringify(newTasks));
+      const tasksJson = JSON.stringify(newTasks);
+      console.log('Tasks JSON:', tasksJson);
+      localStorage.setItem('tasks', tasksJson);
       console.log('Tasks saved to localStorage:', newTasks);
+      alert('Úkoly uloženy do localStorage: ' + newTasks.length);
+
+      // Verify localStorage was updated
+      const storedTasks = localStorage.getItem('tasks');
+      console.log('Stored tasks from localStorage:', storedTasks);
+      if (storedTasks) {
+        const parsedTasks = JSON.parse(storedTasks);
+        console.log('Parsed tasks from localStorage:', parsedTasks);
+        alert('Načteno z localStorage: ' + parsedTasks.length);
+      }
     } catch (error) {
       console.error('Error saving tasks to localStorage:', error);
+      alert('Chyba při ukládání úkolů: ' + error.message);
     }
 
     // Automatically generate schedule with the new tasks
