@@ -74,10 +74,15 @@ function TimeManager({ onLocationTasks }) {
 
   // Save to localStorage when data changes
   useEffect(() => {
-    localStorage.setItem('tasks', JSON.stringify(tasks));
-    localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
-    localStorage.setItem('freeTimeActivities', JSON.stringify(freeTimeActivities));
-    localStorage.setItem('schedule', JSON.stringify(schedule));
+    try {
+      console.log('Saving tasks to localStorage:', tasks);
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+      localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
+      localStorage.setItem('freeTimeActivities', JSON.stringify(freeTimeActivities));
+      localStorage.setItem('schedule', JSON.stringify(schedule));
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
+    }
   }, [tasks, completedTasks, freeTimeActivities, schedule]);
 
   // Function to estimate task duration using AI
@@ -116,11 +121,25 @@ function TimeManager({ onLocationTasks }) {
     const task = {
       id: Date.now(),
       text: newTask,
-      duration: newTaskDuration ? parseInt(newTaskDuration) : null,
+      duration: newTaskDuration ? parseInt(newTaskDuration) : 30,
+      completed: false,
       createdAt: new Date().toISOString()
     };
 
-    setTasks([...tasks, task]);
+    // Add the new task to the existing tasks
+    const newTasks = [...tasks, task];
+
+    // Update state
+    setTasks(newTasks);
+
+    // Save to localStorage immediately
+    try {
+      localStorage.setItem('tasks', JSON.stringify(newTasks));
+      console.log('Tasks saved to localStorage after adding new task:', newTasks);
+    } catch (error) {
+      console.error('Error saving tasks to localStorage:', error);
+    }
+
     setNewTask('');
     setNewTaskDuration('');
 
@@ -202,7 +221,20 @@ function TimeManager({ onLocationTasks }) {
       createdAt: new Date().toISOString()
     };
 
-    setFreeTimeActivities([...freeTimeActivities, activity]);
+    // Add the new activity to the existing activities
+    const newActivities = [...freeTimeActivities, activity];
+
+    // Update state
+    setFreeTimeActivities(newActivities);
+
+    // Save to localStorage immediately
+    try {
+      localStorage.setItem('freeTimeActivities', JSON.stringify(newActivities));
+      console.log('Activities saved to localStorage after adding new activity:', newActivities);
+    } catch (error) {
+      console.error('Error saving activities to localStorage:', error);
+    }
+
     setNewFreeTimeActivity('');
 
     // Regenerate schedule when activities change
@@ -215,11 +247,25 @@ function TimeManager({ onLocationTasks }) {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
 
-    setCompletedTasks([...completedTasks, {...task, completedAt: new Date().toISOString()}]);
-    setTasks(tasks.filter(t => t.id !== taskId));
+    // Create updated task lists
+    const updatedCompletedTasks = [...completedTasks, {...task, completedAt: new Date().toISOString()}];
+    const updatedTasks = tasks.filter(t => t.id !== taskId);
+
+    // Update state
+    setCompletedTasks(updatedCompletedTasks);
+    setTasks(updatedTasks);
+
+    // Save to localStorage immediately
+    try {
+      localStorage.setItem('completedTasks', JSON.stringify(updatedCompletedTasks));
+      localStorage.setItem('tasks', JSON.stringify(updatedTasks));
+      console.log('Tasks updated in localStorage after completing task');
+    } catch (error) {
+      console.error('Error saving tasks to localStorage:', error);
+    }
 
     // Regenerate schedule when tasks change
-    if (hasApiKey() && tasks.length > 0) {
+    if (hasApiKey() && updatedTasks.length > 0) {
       handleGenerateSchedule();
     }
   };
@@ -229,33 +275,84 @@ function TimeManager({ onLocationTasks }) {
     if (!task) return;
 
     const { completedAt, ...taskWithoutCompletedAt } = task;
-    setTasks([...tasks, taskWithoutCompletedAt]);
-    setCompletedTasks(completedTasks.filter(t => t.id !== taskId));
+
+    // Create updated task lists
+    const updatedTasks = [...tasks, taskWithoutCompletedAt];
+    const updatedCompletedTasks = completedTasks.filter(t => t.id !== taskId);
+
+    // Update state
+    setTasks(updatedTasks);
+    setCompletedTasks(updatedCompletedTasks);
+
+    // Save to localStorage immediately
+    try {
+      localStorage.setItem('tasks', JSON.stringify(updatedTasks));
+      localStorage.setItem('completedTasks', JSON.stringify(updatedCompletedTasks));
+      console.log('Tasks updated in localStorage after uncompleting task');
+    } catch (error) {
+      console.error('Error saving tasks to localStorage:', error);
+    }
 
     // Regenerate schedule when tasks change
-    if (hasApiKey() && tasks.length > 0) {
+    if (hasApiKey() && updatedTasks.length > 0) {
       handleGenerateSchedule();
     }
   };
 
   const deleteTask = (taskId, isCompleted = false) => {
     if (isCompleted) {
-      setCompletedTasks(completedTasks.filter(t => t.id !== taskId));
+      // Create updated completed tasks list
+      const updatedCompletedTasks = completedTasks.filter(t => t.id !== taskId);
+
+      // Update state
+      setCompletedTasks(updatedCompletedTasks);
+
+      // Save to localStorage immediately
+      try {
+        localStorage.setItem('completedTasks', JSON.stringify(updatedCompletedTasks));
+        console.log('Completed tasks updated in localStorage after deleting task');
+      } catch (error) {
+        console.error('Error saving completed tasks to localStorage:', error);
+      }
     } else {
-      setTasks(tasks.filter(t => t.id !== taskId));
+      // Create updated tasks list
+      const updatedTasks = tasks.filter(t => t.id !== taskId);
+
+      // Update state
+      setTasks(updatedTasks);
+
+      // Save to localStorage immediately
+      try {
+        localStorage.setItem('tasks', JSON.stringify(updatedTasks));
+        console.log('Tasks updated in localStorage after deleting task');
+      } catch (error) {
+        console.error('Error saving tasks to localStorage:', error);
+      }
 
       // Regenerate schedule when tasks change
-      if (hasApiKey() && tasks.length > 0) {
+      if (hasApiKey() && updatedTasks.length > 0) {
         handleGenerateSchedule();
       }
     }
   };
 
   const deleteFreeTimeActivity = (activityId) => {
-    setFreeTimeActivities(freeTimeActivities.filter(a => a.id !== activityId));
+    // Create updated activities list
+    const updatedActivities = freeTimeActivities.filter(a => a.id !== activityId);
+
+    // Update state
+    setFreeTimeActivities(updatedActivities);
+
+    // Save to localStorage immediately
+    try {
+      localStorage.setItem('freeTimeActivities', JSON.stringify(updatedActivities));
+      console.log('Activities updated in localStorage after deleting activity');
+    } catch (error) {
+      console.error('Error saving activities to localStorage:', error);
+    }
 
     // Regenerate schedule when activities change
-    if (hasApiKey() && freeTimeActivities.length > 0) {
+    if (hasApiKey() && updatedActivities.length > 0) {
       handleGenerateSchedule();
     }
   };
